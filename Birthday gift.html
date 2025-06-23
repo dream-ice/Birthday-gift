@@ -1,0 +1,296 @@
+
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>爸爸生日快乐！</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Helvetica Neue", sans-serif;
+      background: linear-gradient(to top, #ffecd2, #fcb69f);
+      overflow: hidden;
+    }
+    button {
+      padding: 12px 25px;
+      font-size: 1.2em;
+      background: #ff6f61;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    button:hover { background: #ff3b2f; }
+    .heart-text {
+      font-size: 5em;
+      color: red;
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+    }
+    #page1, #page2, #firework-page {
+      width: 100vw; height: 100vh;
+      text-align: center;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    #page1 { display: flex; }
+    header {
+      height: 100px; text-align: center;
+      padding-top: 30px;
+      background-color: rgba(255,255,255,0.6);
+      z-index: 10; position: relative;
+    }
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: calc(100vh - 100px);
+      overflow: hidden;
+      z-index: 1;
+    }
+    .balloon {
+      position: absolute;
+      width: 100px; height: 130px;
+      border-radius: 50% 50% 45% 45%;
+      background: radial-gradient(circle at 30% 30%, #ff3b3b, #b30000);
+      border: 2px solid #770000;
+      box-shadow: inset -4px -6px 10px rgba(0,0,0,0.2);
+      color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1em; text-align: center;
+      cursor: pointer; user-select: none;
+      z-index: 2;
+    }
+    .balloon::after {
+      content: ''; position: absolute;
+      bottom: -20px; left: 50%;
+      width: 2px; height: 30px;
+      background-color: #333;
+    }
+    #message {
+      position: absolute;
+      bottom: 60px;
+      width: 100%;
+      text-align: center;
+      font-size: 1.3em;
+      color: #222;
+      z-index: 1000;
+      pointer-events: none;
+      background: rgba(255,255,255,0.6);
+      backdrop-filter: blur(5px);
+      border-radius: 10px;
+      padding: 10px;
+    }
+    #next-button {
+      display: none;
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1001;
+    }
+    #firework-page {
+      background: black;
+      color: white;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: fixed;
+      top: 0; left: 0;
+      z-index: 9999;
+    }
+    #firework-text {
+      font-size: 3em;
+      font-weight: bold;
+      text-align: center;
+      z-index: 10000;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="page1">
+  <h1>🎉 亲爱的爸爸，生日快乐！🎉</h1>
+  <div class="heart-text">❤</div>
+  <div id="blessing">
+    最爱最爱爸爸！<br/>
+    From 各就各<br/>
+    因为妈妈说可以写封信，所以我写了……
+  </div>
+  <button onclick="startGame()">点击这里有惊喜！</button>
+</div>
+
+<div id="page2">
+  <header><h1 id="question-title"></h1></header>
+  <div id="game-container"></div>
+  <div id="message">点击每个气球 🎈 会发生惊喜！</div>
+  <button id="next-button" onclick="loadNextQuestion()">下一题</button>
+</div>
+
+<div id="firework-page">
+  <div id="firework-text">🎆 Happy Birthday 爸爸！❤️</div>
+</div>
+
+<audio id="birthday-music" preload="auto">
+  <source src="https://cdn.pixabay.com/audio/2024/10/24/audio_47145285fd.mp3" type="audio/mpeg">
+</audio>
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<script>
+  const questionSets = [
+    {
+      question: "爸爸最拿手的老三样是？",
+      options: ["烧牛肉🥩", "太安鱼🐟", "酸萝卜鸭子汤🦆"],
+      blessings: [
+        "转子牛肉最巴适😀",
+		"复合层次要到位😂",
+		"搭配老鸭子食用最佳😊"
+      ]
+    },
+    {
+      question: "爸爸最喜欢的爱好是？",
+      options: ["看电影🎦", "刷tou音🎶", "高保真音响🔈"],
+      blessings: [
+        "🤫莫开大声注意妈妈",
+        "😀仰卧起坐好搭子",
+        "😊HiFi发烧友"
+      ]
+    },
+	{
+	  question: "爸爸几爱各就各？",
+	  options: ["一爱", "二爱", "三爱"],
+	  blessings: [
+		"😙幺幺也一爱爸爸一起",
+		"🤔难道一爱妈妈",
+		"😊经典三爱一起！",
+	  ]
+	}
+  ];
+
+  let currentQuestionIndex = 0;
+  const container = document.getElementById("game-container");
+  const message = document.getElementById("message");
+  const audio = document.getElementById("birthday-music");
+  const questionTitle = document.getElementById("question-title");
+  const nextBtn = document.getElementById("next-button");
+
+  let clicked = 0;
+  let balloons = [];
+  let balloonPositions = [];
+
+  function isTooClose(x) {
+    return balloonPositions.some(px => Math.abs(px - x) < 120);
+  }
+
+  function spawnBalloons(questionSet) {
+    questionSet.options.forEach((text, i) => {
+      const balloon = document.createElement("div");
+      balloon.className = "balloon";
+      balloon.innerText = text;
+
+      let x;
+      do {
+        x = Math.random() * (window.innerWidth - 120);
+      } while (isTooClose(x));
+      balloonPositions.push(x);
+
+      balloon.style.left = x + "px";
+      let y = window.innerHeight;
+      balloon.style.top = y + "px";
+
+      container.appendChild(balloon);
+      balloons.push({ el: balloon, y: y, speed: Math.random() * 1 + 0.5 });
+
+      balloon.onclick = () => {
+        if (balloon.classList.contains("exploded")) return;
+        balloon.classList.add("exploded");
+        message.innerText = questionSet.blessings[i];
+        confetti({
+          particleCount: 40,
+          spread: 60,
+          origin: { x: x / window.innerWidth, y: y / window.innerHeight },
+          zIndex: 9999
+        });
+        balloon.remove();
+        clicked++;
+        if (clicked === questionSet.options.length) {
+          if (currentQuestionIndex < questionSets.length - 1) {
+            nextBtn.innerText = "下一题";
+          } else {
+            message.innerText = "🎉 趣味小问答结束！";
+            nextBtn.innerText = "开始烟花庆祝";
+          }
+          nextBtn.style.display = "block";
+        }
+      };
+    });
+  }
+
+  function animate() {
+    balloons.forEach(b => {
+      if (!b.el) return;
+      b.y -= b.speed;
+      if (b.y < 110) return;
+      b.el.style.top = b.y + "px";
+    });
+    requestAnimationFrame(animate);
+  }
+
+  function startGame() {
+    document.getElementById("page1").style.display = "none";
+    document.getElementById("page2").style.display = "block";
+    audio.play();
+    loadQuestion(0);
+    animate();
+  }
+
+  function loadQuestion(index) {
+    container.innerHTML = "";
+    balloons = [];
+    balloonPositions = [];
+    clicked = 0;
+    nextBtn.style.display = "none";
+    const qSet = questionSets[index];
+    questionTitle.innerText = qSet.question;
+    message.innerText = "点击每个气球 🎈 会发生惊喜！";
+    spawnBalloons(qSet);
+  }
+
+  function loadNextQuestion() {
+    currentQuestionIndex++;
+    if (currentQuestionIndex < questionSets.length) {
+      loadQuestion(currentQuestionIndex);
+    } else {
+      showFinalFireworks();
+    }
+  }
+
+  function showFinalFireworks() {
+    document.getElementById("page2").style.display = "none";
+    document.getElementById("firework-page").style.display = "flex";
+    const duration = 8000;
+    const end = Date.now() + duration;
+    (function frame() {
+      confetti({
+        particleCount: 6,
+        angle: Math.random() * 360,
+        spread: 70,
+        origin: { x: Math.random(), y: Math.random() * 0.6 },
+        zIndex: 9999
+      });
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    })();
+  }
+</script>
+</body>
+</html>
